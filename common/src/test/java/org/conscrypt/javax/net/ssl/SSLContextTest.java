@@ -62,6 +62,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.TrustManagerFactorySpi;
 import javax.net.ssl.X509KeyManager;
 import junit.framework.AssertionFailedError;
+import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.junit.Test;
@@ -346,6 +347,15 @@ public class SSLContextTest {
             SSLContext sslContext = SSLContext.getInstance(protocol);
             sslContext.init(null, null, null);
         }
+    }
+
+    @Test
+    public void test_SSLContext_init_withConscrypt()throws Exception {
+        Provider provider = Conscrypt.newProvider();
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.3", provider);
+        sslContext.init(null, null, null);
+        assertEquals("TLSv1.3", sslContext.getProtocol());
+        assertEquals(provider.getName(), sslContext.getProvider().getName());
     }
 
     @Test

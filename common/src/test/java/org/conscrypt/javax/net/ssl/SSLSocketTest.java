@@ -17,6 +17,8 @@
 package org.conscrypt.javax.net.ssl;
 
 import static org.conscrypt.TestUtils.UTF_8;
+import static org.conscrypt.TestUtils.openTestFile;
+import static org.conscrypt.TestUtils.readPrivateKeyPemFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -25,14 +27,22 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -50,15 +60,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLProtocolException;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
+import javax.net.ssl.X509TrustManager;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.conscrypt.Conscrypt;
+import org.conscrypt.OpenSSLX509Certificate;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
@@ -346,6 +366,18 @@ public class SSLSocketTest {
         ssl.setEnabledProtocols(new String[] { "TLSv1.2" });
         assertFalse(new HashSet<String>(Arrays.asList(ssl.getEnabledCipherSuites()))
                 .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+    }
+
+    @Test
+    public void test_SSLSocket_setEnabledCipherSuites_ShangMi() throws Exception {
+        String[] enabledCipherSuites = {"TLS_SM4_GCM_SM3","TLS_SM4_CCM_SM3"};
+        SSLContext context = SSLContext.getInstance("TLSv1.3", Conscrypt.newProvider());
+        context.init(null, null, null);
+        SSLSocketFactory sf = context.getSocketFactory();
+        SSLSocket ssl = (SSLSocket) sf.createSocket();
+        ssl.setEnabledCipherSuites(enabledCipherSuites);
+        String[] currentEnabledCipherSuites = ssl.getEnabledCipherSuites();
+        assertTrue(Arrays.asList(currentEnabledCipherSuites).containsAll(Arrays.asList(enabledCipherSuites)));
     }
 
     @Test
@@ -1043,6 +1075,240 @@ public class SSLSocketTest {
         assertTrue(cause.getMessage(),
                 cause.getMessage().contains("inappropriate fallback")
                         || cause.getMessage().contains("INAPPROPRIATE_FALLBACK"));
+    }
+
+    @Test
+    public void test_SSLSocket_handshake_For_ShangMi() throws Exception {
+
+        final String[] enabledCipherSuites = {"TLS_SM4_GCM_SM3","TLS_SM4_CCM_SM3"};
+        Thread serverThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    SSLServerSocket serverSocket = getServerSslSocketForShangMi();
+                    serverSocket.setEnabledCipherSuites(enabledCipherSuites);
+                    serverSocket.setEnabledProtocols(new String[]{"TLSv1.3"});
+                    while (true){
+                        SSLSocket sslSocket = (SSLSocket)serverSocket.accept();
+                        sslSocket.startHandshake();
+                        InputStream inputStream = sslSocket.getInputStream();
+                        InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                        BufferedReader in = new BufferedReader(inputStreamReader);
+                        String msg = null;
+                        char[] cbuf = new char[1024];
+                        int len = 0;
+                        while( (len = in.read(cbuf, 0, 1024)) != -1 ){
+                            msg = new String(cbuf, 0, len);
+                            assertEquals("Bye", msg);
+                            if("Bye".equals(msg)) {
+                                in.close();
+                                inputStreamReader.close();
+                                inputStream.close();
+                                sslSocket.close();
+                                serverSocket.close();
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }catch (Throwable t){
+                    t.printStackTrace();
+                }
+            }
+        });
+        serverThread.start();
+
+        Thread.sleep(5000L);
+
+        final SSLSocket client = getClientSslSocketForShangMi();
+        client.setEnabledCipherSuites(enabledCipherSuites);
+        client.setEnabledProtocols(new String[]{"TLSv1.3"});
+        client.startHandshake();
+        OutputStream outputStream = client.getOutputStream();
+        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
+        BufferedWriter out = new BufferedWriter(outputStreamWriter);
+        out.write("Bye");
+        out.flush();
+        out.close();
+        outputStreamWriter.close();
+        outputStream.close();
+        client.close();
+    }
+
+    private static SSLSocket getClientSslSocketForShangMi()throws Exception{
+
+        //构建ssl连接上下文
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.3", Conscrypt.newProvider());
+
+        X509Certificate ca = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("sm2-ca.crt"));
+
+        final X509Certificate caCertificate = ca;
+        TrustManager[] tms = new TrustManager[] { new X509TrustManager() {
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return new X509Certificate[0];
+            }
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] certs, String authType) {
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] certs, String authType)throws CertificateException{
+                //ca证书校验
+                if(caCertificate != null){
+                    for (X509Certificate cert : certs) {
+                        try {
+                            cert.checkValidity();
+                            cert.verify(caCertificate.getPublicKey());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            throw new CertificateException(e);
+                        }
+                    }
+                }
+            }
+
+        } };
+
+        sslContext.init(null,tms, new SecureRandom());
+
+        //构建socket工厂
+        SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+        SSLSocket sslSocket = (SSLSocket)socketFactory.createSocket("127.0.0.1", 8888);
+        return sslSocket;
+    }
+
+    private static SSLServerSocket getServerSslSocketForShangMi()throws Exception{
+        //上下文
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.3", Conscrypt.newProvider());
+
+        char[] EMPTY_PASSWORD = new char[0];
+        X509Certificate ca = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("sm2-ca.crt"));
+        X509Certificate crtCert = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("sm2-cert.crt"));
+        PrivateKey privateKey = readPrivateKeyPemFile("sm2-private.key");
+
+        //构建证书链
+        X509Certificate[] chain = new X509Certificate[] {crtCert, ca};
+        KeyStore ks = KeyStore.getInstance("PKCS12",new BouncyCastleProvider());
+        ks.load(null);
+        ks.setKeyEntry("default", privateKey, EMPTY_PASSWORD, chain);
+        ks.setCertificateEntry("CA", ca);
+
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+        kmf.init(ks, EMPTY_PASSWORD);
+        KeyManager[] kms = kmf.getKeyManagers();
+
+        TrustManagerFactory tmf =
+            TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(ks);
+        TrustManager[] tms = tmf.getTrustManagers();
+
+        //上下文初始化
+        sslContext.init(kms, tms, new SecureRandom());
+
+        SSLServerSocketFactory socketFactory = sslContext.getServerSocketFactory();
+        return (SSLServerSocket)socketFactory.createServerSocket(8888);
+    }
+
+    @Test
+    public void test_SSLSocket_CertVerify_For_ShangMi() throws Exception {
+        final String[] enabledCipherSuites = {"TLS_SM4_GCM_SM3","TLS_SM4_CCM_SM3"};
+        final char[] EMPTY_PASSWORD = new char[0];
+        final KeyStore serverKeyStore = buildKeyStoreForShangMi("sm2-cert.crt", "sm2-ca.crt", "sm2-private.key");
+        final KeyStore clientKeyStore = buildKeyStoreForShangMi("sm2-leaf-cert.crt", "sm2-leaf-ca.crt", "sm2-leaf-private.key");
+        Thread serverThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    SSLContext sslContext = SSLContext.getInstance("TLSv1.3", Conscrypt.newProvider());
+                    KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+                    kmf.init(serverKeyStore, EMPTY_PASSWORD);
+                    KeyManager[] kms = kmf.getKeyManagers();
+
+                    TrustManagerFactory tmf =
+                        TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    tmf.init(clientKeyStore);
+                    TrustManager[] tms = tmf.getTrustManagers();
+
+                    //上下文初始化
+                    sslContext.init(kms, tms, new SecureRandom());
+
+                    SSLServerSocketFactory socketFactory = sslContext.getServerSocketFactory();
+                    SSLServerSocket serverSocket = (SSLServerSocket)socketFactory.createServerSocket(9999);
+                    serverSocket.setEnabledCipherSuites(enabledCipherSuites);
+                    serverSocket.setEnabledProtocols(new String[]{"TLSv1.3"});
+                    while (true){
+                        SSLSocket sslSocket = (SSLSocket)serverSocket.accept();
+                        sslSocket.startHandshake();
+                        InputStream inputStream = sslSocket.getInputStream();
+                        InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                        BufferedReader in = new BufferedReader(inputStreamReader);
+                        String msg = null;
+                        char[] cbuf = new char[1024];
+                        int len = 0;
+                        while( (len = in.read(cbuf, 0, 1024)) != -1 ){
+                            msg = new String(cbuf, 0, len);
+                            assertEquals("Hello", msg);
+                            if("Hello".equals(msg)) {
+                                in.close();
+                                inputStreamReader.close();
+                                inputStream.close();
+                                sslSocket.close();
+                                serverSocket.close();
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }catch (Throwable t){
+                    t.printStackTrace();
+                }
+            }
+        });
+        serverThread.start();
+        Thread.sleep(5000L);
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.3", Conscrypt.newProvider());
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+        kmf.init(clientKeyStore, EMPTY_PASSWORD);
+        KeyManager[] kms = kmf.getKeyManagers();
+
+        TrustManagerFactory tmf =
+            TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(serverKeyStore);
+        TrustManager[] tms = tmf.getTrustManagers();
+
+        //上下文初始化
+        sslContext.init(kms, tms, new SecureRandom());
+        SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+        SSLSocket client = (SSLSocket)socketFactory.createSocket("127.0.0.1", 9999);
+        client.setEnabledCipherSuites(enabledCipherSuites);
+        client.setEnabledProtocols(new String[]{"TLSv1.3"});
+        client.startHandshake();
+        OutputStream outputStream = client.getOutputStream();
+        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
+        BufferedWriter out = new BufferedWriter(outputStreamWriter);
+        out.write("Hello");
+        out.flush();
+        out.close();
+        outputStreamWriter.close();
+        outputStream.close();
+        client.close();
+    }
+
+    private static KeyStore buildKeyStoreForShangMi(String cert,String caCert,String key)throws Exception{
+        char[] EMPTY_PASSWORD = new char[0];
+        X509Certificate ca = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile(caCert));
+        X509Certificate crtCert = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile(cert));
+        PrivateKey privateKey = readPrivateKeyPemFile(key);
+
+        //构建证书链
+        X509Certificate[] chain = new X509Certificate[] {crtCert, ca};
+        KeyStore ks = KeyStore.getInstance("PKCS12",new BouncyCastleProvider());
+        ks.load(null);
+        ks.setKeyEntry("default", privateKey, EMPTY_PASSWORD, chain);
+        ks.setCertificateEntry("CA", ca);
+        return ks;
     }
 
     @Test

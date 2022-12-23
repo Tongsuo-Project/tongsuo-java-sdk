@@ -8769,6 +8769,16 @@ static jstring NativeCrypto_SSL_CIPHER_get_kx_name(JNIEnv* env, jclass, jlong ci
     return env->NewStringUTF(kx_name);
 }
 
+static jstring NativeCrypto_SSL_CIPHER_get_name(JNIEnv* env, jclass, jlong cipher_address) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    const SSL_CIPHER* cipher = to_SSL_CIPHER(env, cipher_address, /*throwIfNull=*/true);
+    if (cipher == nullptr) {
+        return nullptr;
+    }
+
+    return env->NewStringUTF(SSL_CIPHER_get_name(cipher));
+}
+
 static jobjectArray NativeCrypto_get_cipher_names(JNIEnv* env, jclass, jstring selectorJava) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     ScopedUtfChars selector(env, selectorJava);
@@ -9962,6 +9972,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(setApplicationProtocols, "(J" REF_SSL "Z[B)V"),
         CONSCRYPT_NATIVE_METHOD(setHasApplicationProtocolSelector, "(J" REF_SSL "Z)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_CIPHER_get_kx_name, "(J)Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CIPHER_get_name, "(J)Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(get_cipher_names, "(Ljava/lang/String;)[Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(get_ocsp_single_extension,
                                 "([BLjava/lang/String;J" REF_X509 "J" REF_X509 ")[B"),

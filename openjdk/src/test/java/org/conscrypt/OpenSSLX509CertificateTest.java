@@ -17,6 +17,7 @@
 package org.conscrypt;
 
 import static org.conscrypt.TestUtils.openTestFile;
+import static org.conscrypt.TestUtils.readPrivateKeyPemFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,9 +29,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import junit.framework.TestCase;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+import org.junit.Assert;
 
 public class OpenSSLX509CertificateTest extends TestCase {
     public void testSerialization_NoContextDeserialization() throws Exception {
@@ -152,5 +158,24 @@ public class OpenSSLX509CertificateTest extends TestCase {
             fail();
         } catch (IllegalArgumentException expected) {
         }
+    }
+
+    public void test_LoadSM2PrivateKey()throws Exception{
+        PrivateKey privateKey = readPrivateKeyPemFile("sm2-private.key");
+        Assert.assertNotEquals(null, privateKey);
+    }
+
+    public void test_BuildSM2CertificatChain()throws Exception{
+        char[] EMPTY_PASSWORD = new char[0];
+        X509Certificate ca = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("sm2-ca.crt"));
+        X509Certificate crtCert = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("sm2-cert.crt"));
+        PrivateKey privateKey = readPrivateKeyPemFile("sm2-private.key");
+        //构建证书链
+        X509Certificate[] chain = new X509Certificate[] {crtCert, ca};
+        KeyStore ks = KeyStore.getInstance("PKCS12",new BouncyCastleProvider());
+        ks.load(null);
+        ks.setKeyEntry("default", privateKey, EMPTY_PASSWORD, chain);
+        ks.setCertificateEntry("CA", ca);
+        Assert.assertEquals(ks.aliases().nextElement(),"CA");
     }
 }

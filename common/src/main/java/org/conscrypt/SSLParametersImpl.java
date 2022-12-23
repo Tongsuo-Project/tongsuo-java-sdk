@@ -273,9 +273,7 @@ final class SSLParametersImpl implements Cloneable {
         // Filter out any TLS 1.3 cipher suites the user may have passed.  Our TLS 1.3 suites
         // are always enabled, no matter what the user requests, so we only store the 1.0-1.2
         // suites in enabledCipherSuites.
-        enabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(
-                filterFromCipherSuites(cipherSuites,
-                        NativeCrypto.SUPPORTED_TLS_1_3_CIPHER_SUITES_SET));
+        enabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(cipherSuites);
     }
 
     /**

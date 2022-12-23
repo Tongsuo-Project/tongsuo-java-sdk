@@ -35,11 +35,13 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,7 +64,9 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
 import org.conscrypt.testing.Streams;
+import org.junit.Assert;
 import org.junit.Assume;
+import sun.misc.BASE64Decoder;
 
 /**
  * Utility methods to support testing.
@@ -259,6 +263,27 @@ public final class TestUtils {
             throw new FileNotFoundException(name);
         }
         return is;
+    }
+
+    public static PrivateKey readPrivateKeyPemFile(String name)throws Exception{
+        InputStream inputStream = openTestFile(name);
+        InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+        StringBuilder sb = new StringBuilder();
+        String line = null;
+        while ((line = bufferedReader.readLine()) != null){
+            if(line.startsWith("-")){
+                continue;
+            }
+            sb.append(line).append("\n");
+        }
+        String ecKey = sb.toString();
+        BASE64Decoder base64decoder = new BASE64Decoder();
+        byte[] keyByte = base64decoder.decodeBuffer(ecKey);
+        PKCS8EncodedKeySpec eks2 = new PKCS8EncodedKeySpec(keyByte);
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", new BouncyCastleProvider());
+        PrivateKey privateKey = keyFactory.generatePrivate(eks2);
+        return privateKey;
     }
 
     public static byte[] readTestFile(String name) throws IOException {

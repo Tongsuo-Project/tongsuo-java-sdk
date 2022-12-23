@@ -1349,6 +1349,8 @@ public final class NativeCrypto {
 
     static native String SSL_CIPHER_get_kx_name(long cipherAddress);
 
+    static native String SSL_CIPHER_get_name(long cipherAddress);
+
     static native String[] get_cipher_names(String selection);
 
     public static native byte[] get_ocsp_single_extension(
