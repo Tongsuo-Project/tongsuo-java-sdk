@@ -178,4 +178,14 @@ public class OpenSSLX509CertificateTest extends TestCase {
         ks.setCertificateEntry("CA", ca);
         Assert.assertEquals(ks.aliases().nextElement(),"CA");
     }
+
+    public void test_VerifyECPrivateKeyAlgorithm()throws Exception{
+        PrivateKey privateKey = readSM2PrivateKeyPemFile("sm2-private.key");
+        assertEquals("EC", privateKey.getAlgorithm());
+    }
+
+    public void test_VerifySm2PublicKeyAlgorithm()throws Exception{
+        X509Certificate crtCert = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("sm2-cert.crt"));
+        assertEquals("SM2", crtCert.getPublicKey().getAlgorithm());
+    }
 }
