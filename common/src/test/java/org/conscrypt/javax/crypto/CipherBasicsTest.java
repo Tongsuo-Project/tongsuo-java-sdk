@@ -86,7 +86,6 @@ public final class CipherBasicsTest {
         TestUtils.assumeAllowsUnsignedCrypto();
     }
 
-    @Ignore("not supported by Tongsuo")
     @Test
     public void testBasicEncryption() throws Exception {
         for (Provider p : Security.getProviders()) {

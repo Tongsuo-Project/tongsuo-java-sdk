@@ -46,6 +46,8 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
      */
     private int modeBlockSize;
 
+    private int bufLen;
+
     protected OpenSSLEvpCipher(Mode mode, Padding padding) {
         super(mode, padding);
     }
@@ -106,6 +108,7 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
                 .EVP_CIPHER_CTX_set_padding(cipherCtx, getPadding() == Padding.PKCS5PADDING);
         modeBlockSize = NativeCrypto.EVP_CIPHER_CTX_block_size(cipherCtx);
         calledUpdate = false;
+        bufLen = 0;
     }
 
     @Override
@@ -123,6 +126,8 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
                 inputOffset, inputLen);
 
         calledUpdate = true;
+        bufLen += inputLen;
+        bufLen = bufLen % modeBlockSize;
 
         return outputOffset - intialOutputOffset;
     }
@@ -168,21 +173,11 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
         if (modeBlockSize == 1) {
             return inputLen;
         } else {
-            final int buffered = NativeCrypto.get_EVP_CIPHER_CTX_buf_len(cipherCtx);
-
-            if (getPadding() == Padding.NOPADDING) {
-                return buffered + inputLen;
+            int totalLen = bufLen + inputLen;
+            if (getPadding() != Padding.NOPADDING && isEncrypting()) {
+                return ((totalLen / modeBlockSize) + 1) * modeBlockSize;
             } else {
-                final boolean finalUsed = NativeCrypto.get_EVP_CIPHER_CTX_final_used(cipherCtx);
-                // There is an additional buffer containing the possible final block.
-                int totalLen = inputLen + buffered + (finalUsed ? modeBlockSize : 0);
-                // Extra block for remainder bytes plus padding.
-                // In case it's encrypting and there are no remainder bytes, add an extra block
-                // consisting only of padding.
-                totalLen += ((totalLen % modeBlockSize != 0) || isEncrypting())
-                        ? modeBlockSize : 0;
-                // The minimum multiple of {@code modeBlockSize} that can hold all the bytes.
-                return totalLen - (totalLen % modeBlockSize);
+                return totalLen;
             }
         }
     }

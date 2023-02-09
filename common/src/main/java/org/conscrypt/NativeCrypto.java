@@ -310,9 +310,9 @@ public final class NativeCrypto {
 
     static native int EVP_CIPHER_CTX_block_size(NativeRef.EVP_CIPHER_CTX ctx);
 
-    static native int get_EVP_CIPHER_CTX_buf_len(NativeRef.EVP_CIPHER_CTX ctx);
+//     static native int get_EVP_CIPHER_CTX_buf_len(NativeRef.EVP_CIPHER_CTX ctx);
 
-    static native boolean get_EVP_CIPHER_CTX_final_used(NativeRef.EVP_CIPHER_CTX ctx);
+//     static native boolean get_EVP_CIPHER_CTX_final_used(NativeRef.EVP_CIPHER_CTX ctx);
 
     static native void EVP_CIPHER_CTX_set_padding(
             NativeRef.EVP_CIPHER_CTX ctx, boolean enablePadding);
