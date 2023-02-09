@@ -189,4 +189,17 @@ public abstract class KeyGeneratorImpl extends KeyGeneratorSpi {
             }
         }
     }
+
+    public static final class SM4 extends KeyGeneratorImpl {
+        public SM4() {
+            super("SM4", 128);
+        }
+
+        @Override
+        protected void checkKeySize(int keySize) {
+            if (keySize != 128) {
+                throw new InvalidParameterException("Key size must be 128 bits");
+            }
+        }
+    }
 }

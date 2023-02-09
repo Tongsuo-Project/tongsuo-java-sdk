@@ -59,6 +59,11 @@ public final class CipherBasicsTest {
         BASIC_CIPHER_TO_TEST_DATA.put("AES/CFB8/NoPadding", "crypto/aes-cfb8.csv");
         BASIC_CIPHER_TO_TEST_DATA.put("AES/CFB128/NoPadding", "crypto/aes-cfb128.csv");
         BASIC_CIPHER_TO_TEST_DATA.put("AES/OFB/NoPadding", "crypto/aes-ofb.csv");
+        BASIC_CIPHER_TO_TEST_DATA.put("SM4/ECB/NoPadding", "crypto/sm4-ecb.csv");
+        BASIC_CIPHER_TO_TEST_DATA.put("SM4/CBC/NoPadding", "crypto/sm4-cbc.csv");
+        BASIC_CIPHER_TO_TEST_DATA.put("SM4/CFB/NoPadding", "crypto/sm4-cfb.csv");
+        BASIC_CIPHER_TO_TEST_DATA.put("SM4/OFB/NoPadding", "crypto/sm4-ofb.csv");
+        BASIC_CIPHER_TO_TEST_DATA.put("SM4/CTR/NoPadding", "crypto/sm4-ctr.csv");
         BASIC_CIPHER_TO_TEST_DATA.put("DESEDE/ECB/NoPadding", "crypto/desede-ecb.csv");
         BASIC_CIPHER_TO_TEST_DATA.put("DESEDE/CBC/NoPadding", "crypto/desede-cbc.csv");
         BASIC_CIPHER_TO_TEST_DATA.put("DESEDE/CFB8/NoPadding", "crypto/desede-cfb8.csv");

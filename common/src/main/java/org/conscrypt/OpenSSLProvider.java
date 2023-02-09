@@ -122,6 +122,9 @@ public class OpenSSLProvider extends Provider {
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.22", "AES");
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.42", "AES");
 
+        put("AlgorithmParameters.SM4", PREFIX + "IvParameters$SM4");
+        put("Alg.Alias.AlgorithmParameters.1.2.156.10197.6.1.1.2", "AES");
+
         put("AlgorithmParameters.ChaCha20", PREFIX + "IvParameters$ChaCha20");
 
         put("AlgorithmParameters.DESEDE", PREFIX + "IvParameters$DESEDE");
@@ -173,6 +176,8 @@ public class OpenSSLProvider extends Provider {
 
         put("KeyGenerator.DESEDE", PREFIX + "KeyGeneratorImpl$DESEDE");
         put("Alg.Alias.KeyGenerator.TDEA", "DESEDE");
+
+        put("KeyGenerator.SM4", PREFIX + "KeyGeneratorImpl$SM4");
 
         put("KeyGenerator.HmacMD5", PREFIX + "KeyGeneratorImpl$HmacMD5");
         put("Alg.Alias.KeyGenerator.1.3.6.1.5.5.8.1.1", "HmacMD5");
@@ -449,6 +454,23 @@ public class OpenSSLProvider extends Provider {
         put("Alg.Alias.Cipher.PBEWithHmacSHA256AndAES_256", "AES_256/CBC/PKCS5PADDING");
         put("Alg.Alias.Cipher.PBEWithHmacSHA384AndAES_256", "AES_256/CBC/PKCS5PADDING");
         put("Alg.Alias.Cipher.PBEWithHmacSHA512AndAES_256", "AES_256/CBC/PKCS5PADDING");
+
+        putSymmetricCipherImplClass("SM4/CBC/NoPadding",
+                "SM4Cipher$CBC$NoPadding");
+        putSymmetricCipherImplClass("SM4/CBC/PKCS5Padding",
+                "SM4Cipher$CBC$PKCS5Padding");
+        put("Alg.Alias.Cipher.SM4/CBC/PKCS7Padding", "SM4/CBC/PKCS5Padding");
+        putSymmetricCipherImplClass("SM4/CTR/NoPadding",
+                "SM4Cipher$CTR");
+        putSymmetricCipherImplClass("SM4/ECB/NoPadding",
+                "SM4Cipher$ECB$NoPadding");
+        putSymmetricCipherImplClass("SM4/ECB/PKCS5Padding",
+                "SM4Cipher$ECB$PKCS5Padding");
+        put("Alg.Alias.Cipher.SM4/ECB/PKCS7Padding", "SM4/ECB/PKCS5Padding");
+        putSymmetricCipherImplClass("SM4/CFB/NoPadding",
+                "SM4Cipher$CFB");
+        putSymmetricCipherImplClass("SM4/OFB/NoPadding",
+                "SM4Cipher$OFB");
 
         putSymmetricCipherImplClass("DESEDE/CBC/NoPadding",
                 "OpenSSLEvpCipherDESEDE$CBC$NoPadding");

@@ -2999,6 +2999,16 @@ static jlong NativeCrypto_EVP_get_cipherbyname(JNIEnv* env, jclass, jstring algo
         cipher = EVP_aes_256_ctr();
     } else if (strcasecmp(alg, "aes-256-gcm") == 0) {
         cipher = EVP_aes_256_gcm();
+    } else if (strcasecmp(alg, "sm4-cbc") == 0) {
+        cipher = EVP_sm4_cbc();
+    } else if (strcasecmp(alg, "sm4-ctr") == 0) {
+        cipher = EVP_sm4_ctr();
+    } else if (strcasecmp(alg, "sm4-ecb") == 0) {
+        cipher = EVP_sm4_ecb();
+    } else if (strcasecmp(alg, "sm4-cfb") == 0) {
+        cipher = EVP_sm4_cfb();
+    } else if (strcasecmp(alg, "sm4-ofb") == 0) {
+        cipher = EVP_sm4_ofb();
     } else {
         JNI_TRACE("NativeCrypto_EVP_get_cipherbyname(%s) => error", alg);
         return 0;

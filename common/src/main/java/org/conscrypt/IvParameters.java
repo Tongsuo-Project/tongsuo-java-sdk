@@ -110,6 +110,9 @@ public class IvParameters extends AlgorithmParametersSpi {
     public static class AES extends IvParameters {
         public AES() {}
     }
+    public static class SM4 extends IvParameters {
+        public SM4() {}
+    }
     public static class DESEDE extends IvParameters {
         public DESEDE() {}
     }

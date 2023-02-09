@@ -55,6 +55,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
         CBC,
         CTR,
         ECB,
+        CFB,
+        OFB,
         GCM,
         GCM_SIV,
         POLY1305,

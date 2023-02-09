@@ -122,6 +122,7 @@ public class KeyGeneratorTest {
         putKeySize("RC4", 40);
         putKeySize("RC4", 41);
         putKeySize("RC4", 1024);
+        putKeySize("SM4", 128);
         putKeySize("HmacMD5", 1);
         putKeySize("HmacMD5", 1025);
         putKeySize("HmacSHA1", 1);
