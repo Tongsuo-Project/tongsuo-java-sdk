@@ -18,8 +18,6 @@ import java.util.concurrent.CountDownLatch;
 import net.tongsuo.TongsuoX509Certificate;
 import net.tongsuo.TongsuoProvider;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 import org.junit.Test;
 
 import static org.conscrypt.TestUtils.openTestFile;
@@ -38,9 +36,13 @@ public class TongsuoProviderEndToEndTest {
 
     private volatile int port = -1;
 
+    static {
+        Security.addProvider(new TongsuoProvider());
+    }
+
     private SSLContext createServerSSLContext() throws Exception {
         // Create an empty keystore
-        KeyStore ks = KeyStore.getInstance("PKCS12", new BouncyCastleProvider());
+        KeyStore ks = KeyStore.getInstance("PKCS12", new TongsuoProvider());
         ks.load(null, null);
 
         // Build a service CA
@@ -72,7 +74,7 @@ public class TongsuoProviderEndToEndTest {
     }
 
     private SSLContext createClientSSLContext() throws Exception {
-        KeyStore ks = KeyStore.getInstance("PKCS12",new BouncyCastleProvider());
+        KeyStore ks = KeyStore.getInstance("PKCS12", new TongsuoProvider());
         ks.load(null, null);
 
         X509Certificate ca = TongsuoX509Certificate
