@@ -22,6 +22,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
 import java.security.KeyManagementException;
+import java.util.Arrays;
+
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -112,5 +115,14 @@ public class ClientSessionContextTest extends AbstractSessionContextTest<ClientS
         assertSame(single2,
                 context.getCachedSession("host", DEFAULT_PORT, getDefaultSSLParameters()));
         assertEquals(0, size(context));
+    }
+
+    @Test
+    public void testGetEnableSm2FromSSLParamters(){
+        SSLParametersImpl sslParameters = getDefaultSSLParameters();
+        String[] enabledCipherSuites = {"TLS_SM4_GCM_SM3","TLS_SM4_CCM_SM3"};
+        sslParameters.setEnabledCipherSuites(enabledCipherSuites);
+        String[] currentEnabledCipherSuites = sslParameters.getEnabledCipherSuites();
+        Assert.assertTrue(Arrays.asList(currentEnabledCipherSuites).containsAll(Arrays.asList(NativeCrypto.SUPPORTED_TLS_1_3_CIPHER_SUITES)));
     }
 }
