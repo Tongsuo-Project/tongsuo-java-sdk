@@ -24,5 +24,6 @@ public final class TongsuoProvider extends OpenSSLProvider {
         // Register TlcpKeyManagerFactoryImpl and TlcpKeyManagerImpl
         put("KeyManagerFactory.TlcpKeyManagerFactory", TlcpKeyManagerFactoryImpl.class.getName());
         // put("X509ExtendedKeyManager.TlcpKeyManager", TlcpKeyManagerImpl.class.getName());
+        put("KeyStore.PKCS12", "net.tongsuo.sun.security.pkcs12.PKCS12KeyStore");
     }
 }
