@@ -134,6 +134,10 @@ final class SSLParametersImpl implements Cloneable {
         this.clientSessionContext = clientSessionContext;
         this.enableTlcp = enableTlcp;
 
+        if (protocols != null) {
+            this.enableTlcp = Arrays.asList(protocols).contains(NativeCrypto.SUPPORTED_PROTOCOL_TLCP);
+        }
+
         // initialize key managers
         if (kms == null) {
             x509KeyManager = getDefaultX509KeyManager();
@@ -203,6 +207,7 @@ final class SSLParametersImpl implements Cloneable {
         this.useSessionTickets = sslParams.useSessionTickets;
         this.useSni = sslParams.useSni;
         this.channelIdEnabled = sslParams.channelIdEnabled;
+        this.enableTlcp = sslParams.enableTlcp;
     }
 
     static SSLParametersImpl getDefault() throws KeyManagementException {

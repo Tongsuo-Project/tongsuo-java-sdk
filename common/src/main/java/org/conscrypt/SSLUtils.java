@@ -555,8 +555,8 @@ final class SSLUtils {
 
         // SSLv3 or TLS - Check ProtocolVersion
         int majorVersion = unsignedByte(buffer.get(pos + 1));
-        if (majorVersion != 3) {
-            // Neither SSLv3 or TLSv1 (i.e. SSLv2 or bad data)
+        if (majorVersion != 3 && majorVersion != 1) {
+            // Neither SSLv3, TLSv1 or TLCP (i.e. SSLv2 or bad data)
             return -1;
         }
 

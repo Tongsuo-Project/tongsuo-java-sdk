@@ -401,22 +401,6 @@ public class SSLSessionContextTest {
         }
     }
 
-    private static void assertSSLSessionContextSizeAtLeast(
-        int expected, SSLSessionContext client, SSLSessionContext server) {
-        assertSSLSessionContextSizeAtLeast(expected, client, false);
-        assertSSLSessionContextSizeAtLeast(expected, server, true);
-    }
-
-    private static void assertSSLSessionContextSizeAtLeast(
-        int expected, SSLSessionContext s, boolean server) {
-        if (server && TestSSLContext.sslServerSocketSupportsSessionTickets()) {
-            assertEquals(0, numSessions(s));
-        } else {
-            assertTrue("numSessions: " + numSessions(s) + ", expected at least: " + expected,
-                numSessions(s) >= expected);
-        }
-    }
-
     private int expectedClientSslSessionCacheSize(TestSSLContext c) {
         return isConscrypt(c.clientContext.getProvider()) ? 10 : 0;
     }

@@ -1116,6 +1116,7 @@ public class SSLSocketTest {
                     }
                 }catch (Throwable t){
                     t.printStackTrace();
+                    assertTrue(false);
                 }
             }
         });
@@ -1268,6 +1269,7 @@ public class SSLSocketTest {
                     }
                 }catch (Throwable t){
                     t.printStackTrace();
+                    assertTrue(false);
                 }
             }
         });

@@ -1050,6 +1050,7 @@ public final class NativeCrypto {
 
     static final String[] DEFAULT_PROTOCOLS = TLSV13_PROTOCOLS;
     private static final String[] SUPPORTED_PROTOCOLS = new String[] {
+            SUPPORTED_PROTOCOL_TLCP,
             SUPPORTED_PROTOCOL_TLSV1,
             SUPPORTED_PROTOCOL_TLSV1_1,
             SUPPORTED_PROTOCOL_TLSV1_2,
@@ -1103,7 +1104,9 @@ public final class NativeCrypto {
     }
 
     private static int getProtocolConstant(String protocol) {
-        if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1)) {
+        if (protocol.equals(SUPPORTED_PROTOCOL_TLCP)) {
+            return NativeConstants.NTLS_VERSION;
+        } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1)) {
             return NativeConstants.TLS1_VERSION;
         } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1_1)) {
             return NativeConstants.TLS1_1_VERSION;

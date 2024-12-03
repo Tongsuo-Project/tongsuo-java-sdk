@@ -1,39 +1,62 @@
-name: Continuous integration
 
+# Copyright 2024 The Tongsuo Project Authors. All Rights Reserved.
+#
+# Licensed under the Apache License 2.0 (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://github.com/Tongsuo-Project/Tongsuo/blob/master/LICENSE.txt
+
+name: Release
 on:
   workflow_dispatch:
-  pull_request:
-  schedule:
-    # Run every day at midnight UTC
-    - cron: '0 0 * * *'
+    inputs:
+      version:
+        description: The version to build
+
+env:
+  TONGSUO_VERSION: 8.4-stable
 
 jobs:
-  tongsuo_clone:
-    # This step ensures that all builders have the same version of Tongsuo
+  clone_tongsuo:
     runs-on: ubuntu-latest
-
     steps:
       - name: Clone Tongsuo repo
         uses: actions/checkout@v4
         with:
           repository: Tongsuo-Project/Tongsuo
-          ref: 8.4-stable
+          ref: ${{ env.TONGSUO_VERSION }}
           path: Tongsuo
 
       - name: Archive Tongsuo source
         uses: actions/upload-artifact@v4
         with:
-          name: tongsuo-source
+          name: tongsuo-src
           path: ${{ github.workspace }}/Tongsuo
 
   build-with-tongsuo-static:
-    needs: tongsuo_clone
+    needs: clone_tongsuo
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-13, macos-14, windows-latest]
-
-    runs-on: ${{ matrix.platform }}
+        platform: [
+          {
+            os: ubuntu-latest,
+            target: linux-x86_64
+          },
+          {
+            os: macos-13,
+            target: darwin64-x86_64
+          },
+          {
+            os: macos-latest,
+            target: darwin64-arm64
+          },
+          {
+            os: windows-latest,
+            target: VC-WIN64A
+          }
+        ]
+    runs-on: ${{ matrix.platform.os }}
     timeout-minutes: 30
     steps:
       - name: Set up JDK 11 for toolchains
@@ -50,7 +73,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Fetch Tongsuo source
-        run: gh run download --name tongsuo-source --dir ${{ github.workspace }}/Tongsuo
+        run: gh run download --name tongsuo-src --dir ${{ github.workspace }}/Tongsuo
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -58,7 +81,8 @@ jobs:
         if: runner.os == 'Linux' || runner.os == 'macOS'
         run: |
           pushd ${{ github.workspace }}/Tongsuo
-          perl ./Configure --banner=Configured --prefix=$TONGSUO_HOME --libdir=$TONGSUO_HOME/lib enable-weak-ssl-ciphers enable-ntls no-shared
+          perl ./config --banner=Configured ${{ matrix.platform.target }} --prefix=$TONGSUO_HOME --libdir=$TONGSUO_HOME/lib enable-weak-ssl-ciphers enable-ntls no-shared \
+                --strict-warnings --release
           make -s -j4
           make install
           popd
@@ -74,7 +98,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           cd ${{ github.workspace }}\Tongsuo
-          perl .\Configure --banner=Configured --prefix=$Env:TONGSUO_HOME no-capieng no-makedepend enable-weak-ssl-ciphers enable-ntls no-shared
+          perl .\Configure --banner=Configured ${{ matrix.platform.target }} --prefix=$Env:TONGSUO_HOME no-capieng no-makedepend enable-weak-ssl-ciphers enable-ntls no-shared --release
           nmake /S
           nmake install
           Get-ChildItem -Force -LiteralPath $Env:TONGSUO_HOME\lib
@@ -82,7 +106,6 @@ jobs:
       - name: Build with Gradle
         shell: bash
         run: |
-          ./gradlew --version
           ./gradlew assemble -PcheckErrorQueue
 
       - name: Test with Gradle
@@ -93,27 +116,38 @@ jobs:
         shell: bash
         run: ./gradlew check -PcheckErrorQueue
 
-      - name: Build test JAR with dependencies
-        if: runner.os == 'Linux'
-        shell: bash
-        run: ./gradlew :tongsuo-openjdk:testJar -PcheckErrorQueue
-
-      - name: Upload test JAR with dependencies
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+      - name: Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: testjar
-          path: openjdk/build/libs/tongsuo-openjdk-*-tests.jar
-          if-no-files-found: error
+          tag_name: ${{ github.event.inputs.version }}
+          draft: true
+          prerelease: true
+          files: openjdk/build/libs/tongsuo-openjdk-${{ github.event.inputs.version }}-*.jar
 
   build-with-tongsuo-dynamic:
-    needs: tongsuo_clone
+    needs: clone_tongsuo
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-13, macos-14, windows-latest]
-
-    runs-on: ${{ matrix.platform }}
+        platform: [
+          {
+            os: ubuntu-latest,
+            target: linux-x86_64
+          },
+          {
+            os: macos-13,
+            target: darwin64-x86_64
+          },
+          {
+            os: macos-latest,
+            target: darwin64-arm64
+          },
+          {
+            os: windows-latest,
+            target: VC-WIN64A
+          }
+        ]
+    runs-on: ${{ matrix.platform.os }}
     timeout-minutes: 30
     steps:
       - name: Set up JDK 11 for toolchains
@@ -130,7 +164,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Fetch Tongsuo source
-        run: gh run download --name tongsuo-source --dir ${{ github.workspace }}/Tongsuo
+        run: gh run download --name tongsuo-src --dir ${{ github.workspace }}/Tongsuo
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -138,7 +172,8 @@ jobs:
         if: runner.os == 'Linux' || runner.os == 'macOS'
         run: |
           pushd ${{ github.workspace }}/Tongsuo
-          perl ./Configure --banner=Configured --prefix=$TONGSUO_HOME --libdir=$TONGSUO_HOME/lib enable-weak-ssl-ciphers enable-ntls
+          perl ./config --banner=Configured ${{ matrix.platform.target }} --prefix=$TONGSUO_HOME --libdir=$TONGSUO_HOME/lib enable-weak-ssl-ciphers enable-ntls \
+                --strict-warnings --release
           make -s -j4
           make install
           popd
@@ -154,7 +189,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           cd ${{ github.workspace }}\Tongsuo
-          perl .\Configure --banner=Configured --prefix=$Env:TONGSUO_HOME no-capieng no-makedepend enable-weak-ssl-ciphers enable-ntls
+          perl .\Configure --banner=Configured ${{ matrix.platform.target }} --prefix=$Env:TONGSUO_HOME no-capieng no-makedepend enable-weak-ssl-ciphers enable-ntls --release
           nmake /S
           nmake install
           Get-ChildItem -Force -LiteralPath $Env:TONGSUO_HOME\lib
@@ -165,16 +200,16 @@ jobs:
           $pathArray = $env:PATH -split ';'
 
           foreach ($path in $pathArray) {
-              if (Test-Path -Path $path -PathType Container) {
-                  $files = Get-ChildItem -Path $path -File
-                  foreach ($file in $files) {
-                      if ($file.Name -like '*libcrypto*') {
-                          Write-Host $path
-                          Copy-Item -Path "$Env:TONGSUO_HOME\bin\*.dll" -Destination $path -Force
-                          break
-                      }
-                  }
+            if (Test-Path -Path $path -PathType Container) {
+              $files = Get-ChildItem -Path $path -File
+              foreach ($file in $files) {
+                if ($file.Name -like '*libcrypto*') {
+                  Write-Host $path
+                  Copy-Item -Path "$Env:TONGSUO_HOME\bin\*.dll" -Destination $path -Force
+                  break
+                }
               }
+            }
           }
 
       - name: Set PATH for runtime library search
@@ -185,19 +220,31 @@ jobs:
           add_path("$ENV{RUNNER_TEMP}\\tongsuo\\bin");
           add_path("$ENV{RUNNER_TEMP}\\tongsuo\\lib");
 
-      - name: Build with Gradle based on Tongsuo dynamic library
+      - name: Build with Gradle
         shell: bash
-        run: ./gradlew assemble -PcheckErrorQueue -PtongsuoDynamic=1
+        run: |
+          ./gradlew assemble -PcheckErrorQueue -PtongsuoDynamic=1
 
-      - name: Test with Gradle based on Tongsuo dynamic library
+      - name: Test with Gradle
         shell: bash
         run: ./gradlew test -PcheckErrorQueue -PtongsuoDynamic=1
 
-      - name: Other checks with Gradle based on Tongsuo dynamic library
+      - name: Other checks with Gradle
         shell: bash
         run: ./gradlew check -PcheckErrorQueue -PtongsuoDynamic=1
 
-      - name: Build test JAR with dependencies based on Tongsuo dynamic library
-        if: runner.os == 'Linux'
+      - name: Rename to dynamic jar
         shell: bash
-        run: ./gradlew :tongsuo-openjdk:testJar -PcheckErrorQueue -PtongsuoDynamic=1
+        run: |
+          for file in openjdk/build/libs/tongsuo-openjdk-${{ github.event.inputs.version }}-*.jar; do
+            mv "$file" "${file%.*}-dynamic.jar"
+          done
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.event.inputs.version }}
+          tag_name: ${{ github.event.inputs.version }}
+          draft: true
+          prerelease: true
+          files: openjdk/build/libs/tongsuo-openjdk-${{ github.event.inputs.version }}-*-dynamic.jar

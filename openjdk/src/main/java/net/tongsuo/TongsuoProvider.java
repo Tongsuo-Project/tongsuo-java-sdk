@@ -18,7 +18,7 @@ public final class TongsuoProvider extends OpenSSLProvider {
 
     static final String NAME = "Tongsuo_Security_Provider";
 
-    private static final double VERSION_NUM = 1.0D;
+    private static final double VERSION_NUM = 1.1;
 
     public TongsuoProvider() {
         super(NAME, VERSION_NUM, INFO);

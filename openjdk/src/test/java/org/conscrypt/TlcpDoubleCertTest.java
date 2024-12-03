@@ -88,7 +88,6 @@ public class TlcpDoubleCertTest {
 
     @Before
     public final void before() throws Exception {
-        Conscrypt.setUseEngineSocketByDefault(false);
         // Initial cipher suit map.
         CIPHER_SUIT_MAP.put("ECC-SM2-WITH-SM4-SM3", "ECC-SM2-SM4-CBC-SM3");
         CIPHER_SUIT_MAP.put("ECC-SM2-SM4-CBC-SM3", "ECC-SM2-SM4-CBC-SM3");
@@ -106,7 +105,6 @@ public class TlcpDoubleCertTest {
 
     @After
     public final void after() {
-        Conscrypt.setUseEngineSocketByDefault(true);
     }
 
     private void buildCaCert() throws Exception {
@@ -359,7 +357,7 @@ public class TlcpDoubleCertTest {
                     BufferedReader ioReader = new BufferedReader(new InputStreamReader(sslSocket.getInputStream(), StandardCharsets.UTF_8));
                     PrintWriter ioWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(sslSocket.getOutputStream(), StandardCharsets.UTF_8)));
                     SSLSession session = (SSLSession) sslSocket.getClass().getSuperclass().getDeclaredMethod("getActiveSession").invoke(sslSocket);
-                    String hostname = (String) session.getClass().getDeclaredMethod("getRequestedServerName").invoke(session);
+                    String hostname = (String) session.getClass().getMethod("getRequestedServerName").invoke(session);
                     assertEquals(hostname, SNI_HOST_NAME);
                     String tmpMsg = ioReader.readLine();
                     if (tmpMsg != null) {
