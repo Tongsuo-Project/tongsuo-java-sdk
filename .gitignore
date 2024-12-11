@@ -28,3 +28,6 @@ bin
 
 # Vogar benchmarks
 vogar-results/*
+
+# java
+*.class

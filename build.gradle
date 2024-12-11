@@ -6,8 +6,11 @@ buildscript {
     ext.errorproneVersion = '2.4.0'
     ext.errorproneJavacVersion = '9+181-r4173-1'
     repositories {
-        google()
-        mavenCentral()
+        // google()
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        // mavenCentral()
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
     }
     dependencies {
         // This must be applied in the root project otherwise each subproject will
@@ -140,7 +143,8 @@ subprojects {
     }
 
     repositories {
-        mavenCentral()
+        // mavenCentral()
+        maven { url 'https://maven.aliyun.com/repository/central' }
         mavenLocal()
     }
 
