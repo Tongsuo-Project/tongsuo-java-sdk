@@ -336,10 +336,12 @@ final class OpenSSLKey {
             throw new InvalidKeySpecException(e);
         }
 
-        if (NativeCrypto.EVP_PKEY_type(key.getNativeRef()) != type) {
+        int decodedKeyType = NativeCrypto.EVP_PKEY_type(key.getNativeRef());
+        if (decodedKeyType != type &&
+            !(decodedKeyType == NativeConstants.EVP_PKEY_SM2 &&
+                type == NativeConstants.EVP_PKEY_EC)) {
             throw new InvalidKeySpecException("Unexpected key type");
         }
-
         try {
             return key.getPrivateKey();
         } catch (NoSuchAlgorithmException e) {
