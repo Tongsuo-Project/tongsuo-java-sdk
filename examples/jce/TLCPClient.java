@@ -136,7 +136,7 @@ public class TLCPClient {
                         if (pattern.startsWith("*.")) {
                             String suffix = pattern.substring(1);
 
-                            if (hostname.length() > suffix.length() + 1) {
+                            if (hostname.length() > suffix.length()) {
                                 if (hostname.endsWith(suffix)) {
                                     String prefix = hostname.substring(0, hostname.length() - suffix.length());
                                     return !prefix.contains(".");
