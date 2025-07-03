@@ -220,6 +220,10 @@ public final class NativeCrypto {
 
     static native long EVP_MD_CTX_create();
 
+    static native long EVP_MD_CTX_create_with_pkey(NativeRef.EVP_PKEY key);
+
+    static native void EVP_MD_CTX_reset_with_pctx(NativeRef.EVP_MD_CTX ctx, long pctx);
+
     static native void EVP_MD_CTX_cleanup(NativeRef.EVP_MD_CTX ctx);
 
     static native void EVP_MD_CTX_destroy(long ctx);

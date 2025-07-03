@@ -82,17 +82,25 @@ public class OpenSSLSignature extends SignatureSpi {
     private OpenSSLSignature(long evpMdRef, EngineType engineType) {
         this.engineType = engineType;
         this.evpMdRef = evpMdRef;
+        this.ctx = null;
+        this.evpPkeyCtx = 0;
     }
 
     private void resetContext() throws InvalidAlgorithmParameterException {
-        NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
-        if (signing) {
-            evpPkeyCtx = NativeCrypto.EVP_DigestSignInit(ctxLocal, evpMdRef, key.getNativeRef());
+        if (this.ctx != null && this.evpPkeyCtx != 0)
+        {
+            NativeCrypto.EVP_MD_CTX_reset_with_pctx(this.ctx, this.evpPkeyCtx);
         } else {
-            evpPkeyCtx = NativeCrypto.EVP_DigestVerifyInit(ctxLocal, evpMdRef, key.getNativeRef());
+            NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create_with_pkey(key.getNativeRef()));
+            this.ctx = ctxLocal;
+        }
+
+        if (signing) {
+            evpPkeyCtx = NativeCrypto.EVP_DigestSignInit(this.ctx, evpMdRef, key.getNativeRef());
+        } else {
+            evpPkeyCtx = NativeCrypto.EVP_DigestVerifyInit(this.ctx, evpMdRef, key.getNativeRef());
         }
         configureEVP_PKEY_CTX(evpPkeyCtx);
-        this.ctx = ctxLocal;
     }
 
     /**
@@ -232,16 +240,6 @@ public class OpenSSLSignature extends SignatureSpi {
             return NativeCrypto.EVP_DigestSignFinal(ctxLocal);
         } catch (Exception ex) {
             throw new SignatureException(ex);
-        } finally {
-            /*
-             * Java expects the digest context to be reset completely after sign
-             * calls.
-             */
-            try {
-                resetContext();
-            } catch (InvalidAlgorithmParameterException e) {
-                throw new AssertionError("Reset of context failed after it was successful once");
-            }
         }
     }
 
@@ -253,16 +251,6 @@ public class OpenSSLSignature extends SignatureSpi {
             return NativeCrypto.EVP_DigestVerifyFinal(ctxLocal, sigBytes, 0, sigBytes.length);
         } catch (Exception ex) {
             throw new SignatureException(ex);
-        } finally {
-            /*
-             * Java expects the digest context to be reset completely after
-             * verify calls.
-             */
-            try {
-                resetContext();
-            } catch (InvalidAlgorithmParameterException e) {
-                throw new AssertionError("Reset of context failed after it was successful once");
-            }
         }
     }
 

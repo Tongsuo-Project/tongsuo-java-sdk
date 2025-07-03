@@ -2292,6 +2292,42 @@ static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
     return reinterpret_cast<uintptr_t>(ctx.release());
 }
 
+static jlong NativeCrypto_EVP_MD_CTX_create_with_pkey(JNIEnv* env, jclass, jobject pkeyRef) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
+    UniquePtr<EVP_MD_CTX> ctx(EVP_MD_CTX_create());
+    if(ctx.get() == nullptr)
+    {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable create a EVP_MD_CTX");
+        return 0;
+    }
+
+     UniquePtr<EVP_PKEY_CTX> pkeyCtx(EVP_PKEY_CTX_new(pkey, nullptr));
+    if (pkeyCtx.get() == nullptr) {
+        JNI_TRACE("EVP_DigestSignCreate(%p) => threw exception", pkey);
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(
+                env, "EVP_PKEY_CTX_new", conscrypt::jniutil::throwInvalidKeyException);
+        return 0;
+    }
+
+    EVP_MD_CTX_set_pkey_ctx(ctx.get(), pkeyCtx.release());
+
+    JNI_TRACE("NativeCrypto_EVP_MD_CTX_create_with_pkey() => %p", ctx.get());
+    return reinterpret_cast<uintptr_t>(ctx.release());
+}
+
+static void NativeCrypto_EVP_MD_CTX_reset_with_pctx(JNIEnv* env, jclass, jobject ctxRef,
+                                    jlong pkeyCtxRef) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    EVP_PKEY_CTX* pkeyCtx = reinterpret_cast<EVP_PKEY_CTX*>(pkeyCtxRef);
+    EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
+    JNI_TRACE_MD("EVP_MD_CTX_reset_with_pctx(%p)(%p)", ctx, pkeyCtx);
+    if (ctx != nullptr) {
+        EVP_MD_CTX_reset(ctx);
+        EVP_MD_CTX_set_pkey_ctx(ctx, pkeyCtx);
+    }
+}
+
 static void NativeCrypto_EVP_MD_CTX_cleanup(JNIEnv* env, jclass, jobject ctxRef) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
@@ -10496,6 +10532,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_cleanup, "(" REF_EVP_MD_CTX ")V"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_destroy, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_copy_ex, "(" REF_EVP_MD_CTX REF_EVP_MD_CTX ")I"),
+        CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_create_with_pkey, "(" REF_EVP_PKEY ")J"),
+        CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_reset_with_pctx, "(" REF_EVP_MD_CTX "J)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_DigestInit_ex, "(" REF_EVP_MD_CTX "J)I"),
         CONSCRYPT_NATIVE_METHOD(EVP_DigestUpdate, "(" REF_EVP_MD_CTX "[BII)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_DigestUpdateDirect, "(" REF_EVP_MD_CTX "JI)V"),
